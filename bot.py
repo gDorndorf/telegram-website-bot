@@ -1,13 +1,16 @@
 from telegram.ext import Updater, CommandHandler, Job
 import config_private as config
-import urllib2
+from urllib.request import urlopen
 import hashlib
+import logging
 
-updater = Updater(token=config.token)
-dispatcher = updater.dispatcher
+# Enable logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def websiteHash(url):
-    response = urllib2.urlopen(url)
+    response = urlopen(url)
     html = response.read()
     return hashlib.md5(html).hexdigest()
 
@@ -17,10 +20,11 @@ def start(bot, update):
 def performCheck(bot, job):
 
     """Function to Check the Website and inform the user"""
-    siteHash=websiteHash(jobContext.url)
-    if not (jobContext.siteHash==siteHash)
-    bot.send_message(job.context.chat_id, text='Es gab änderungen an
-    der Website '+url)
+    siteHash=websiteHash(job.context["url"])
+    if not (job.context["siteHash"]==siteHash):
+        bot.send_message(job.context["chat_id"], text='Es gab aenderungen'+
+                         'an der Website '+job.context["url"])
+        job.context["siteHash"]=siteHash
     
 def set(bot, update, args, job_queue, chat_data):
 
@@ -34,14 +38,15 @@ def set(bot, update, args, job_queue, chat_data):
 
     try:
         jobContext={}
-        jobContext.chat_id=chat_id
-        jobContext.url=arg[0]
-        jobContext.siteHash=websiteHash()
-        job = job_queue.run_once(performCheck, 5*60, context=jobContext)
+        jobContext["chat_id"]=chat_id
+        jobContext["url"]=args[0]
+        #jobContext["siteHash"]=0
+        jobContext["siteHash"]=websiteHash(jobContext["url"])
+        job = job_queue.run_repeating(performCheck, 6, context=jobContext)
 
         chat_data['job'] = job
 
-        update.message.reply_text('Timer successfully set!')
+        update.message.reply_text('Surveillance successfully set!')
 
     except (IndexError, ValueError):
 
@@ -62,27 +67,27 @@ def unset(bot, update, chat_data):
     update.message.reply_text('Surveillance canceled!')
 
 
-    def main():
 
-    updater = Updater()
+def error(bot, update, error):
+
+    logger.warning('Update "%s" caused error "%s"' % (update, error))
+
+    
+def main():
+
+    updater = Updater(config.token)
     # Get the dispatcher to register handlers
-
+    
     dp = updater.dispatcher
 
     # on different commands - answer in Telegram
 
     dp.add_handler(CommandHandler("start", start))
-
     dp.add_handler(CommandHandler("help", start))
-
     dp.add_handler(CommandHandler("set", set,
-
                                   pass_args=True,
-
                                   pass_job_queue=True,
-
                                   pass_chat_data=True))
-
     dp.add_handler(CommandHandler("unset", unset, pass_chat_data=True))
 
 
