@@ -24,7 +24,6 @@ Installation
  - use the [BotFather](https://telegram.me/BotFather) to create a access Token for your Bot
  - copy `config_dummy.py` to `config_private.py`
  - Edit `config_private.py` and insert your token there
- 
 Requirements
 ===
 
