@@ -42,7 +42,7 @@ def set(bot, update, args, job_queue, chat_data):
         jobContext["url"]=args[0]
         #jobContext["siteHash"]=0
         jobContext["siteHash"]=websiteHash(jobContext["url"])
-        job = job_queue.run_repeating(performCheck, 6, context=jobContext)
+        job = job_queue.run_repeating(performCheck, 5*60, context=jobContext)
 
         chat_data['job'] = job
 
