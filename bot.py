@@ -49,7 +49,7 @@ def set(bot, update, args, job_queue, chat_data):
         job = job_queue.run_repeating(performCheck, 5*60, context=jobContext)
 
         chat_data['job'] = job
-        print("Set surveillance for url "+url+"for user ?")
+        print("Set surveillance for url "+jobContext["url"]+"for user ?")
         update.message.reply_text('Surveillance successfully set!')
 
     except (IndexError, ValueError):
