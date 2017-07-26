@@ -36,6 +36,10 @@ def set(bot, update, args, job_queue, chat_data):
 
     chat_id = update.message.chat_id
 
+    if 'job' in chat_data:
+        update.message.reply_text('You have an active surveillance, please cancel first')
+        return
+    
     try:
         jobContext={}
         jobContext["chat_id"]=chat_id
@@ -45,7 +49,7 @@ def set(bot, update, args, job_queue, chat_data):
         job = job_queue.run_repeating(performCheck, 5*60, context=jobContext)
 
         chat_data['job'] = job
-
+        print("Set surveillance for url "+url+"for user ?")
         update.message.reply_text('Surveillance successfully set!')
 
     except (IndexError, ValueError):
