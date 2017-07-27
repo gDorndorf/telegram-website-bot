@@ -1,10 +1,12 @@
-from telegram.ext import Updater, CommandHandler, Job
+from telegram.ext import Updater, CommandHandler, RegexHandler, Job
 import config_private as config
 from urllib.request import urlopen
 import hashlib
 import logging
 import pickle
 import os.path
+import string
+import random
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -16,6 +18,7 @@ data["admin_id"] = -1
 data["job_data"] = {}
 data["update_time"] = 5 #in Seconds
 jobs = {}
+admin_token=''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
 def save_obj(obj, name ):
     with open(name, 'w+b') as f:
@@ -75,6 +78,20 @@ def set(bot, update, args, job_queue):
     except (IndexError, ValueError):
         update.message.reply_text('Failure! Plese use as /set <url>')
 
+def admin(bot, update, job_queue):
+    global data
+    global admin_token
+    chat_id=update.message.chat_id
+    if data["admin_id"]==-1:
+        if update.message.text.equals("admin verify "+admin_token):
+            data["admin_id"]=update.message.chat_id
+            update.message.reply_text("Success, you are now __ADMIN__\n\nI am at your command.")
+            return
+    if data["admin_id"]==chat_id:
+        
+    else:
+        update.message.reply_text("Nice trym but you are not ADMIN!\nThis incient will be reportet!")
+        
 def unset(bot, update):
     """Removes the job if the user changed their mind"""
     if update.message.chat_id not in jobs:
@@ -110,11 +127,12 @@ def main():
                                   pass_args=True,
                                   pass_job_queue=True))
     dp.add_handler(CommandHandler("unset", unset))
+    dp.add_handler(RegexHandler("admin", admin,
+                                  pass_job_queue=True))
 
     
     # log all errors
     dp.add_error_handler(error)
-
     if os.path.isfile(dataFile):
         global data
         data=load_obj(dataFile)
@@ -123,6 +141,13 @@ def main():
             print(chat_id)
             jobs[chat_id]=updater.job_queue.run_repeating(performCheck, data["update_time"], context=jobDat)
         print("done")
+
+    if admin_id == -1:
+        global admin_token
+        print("CRITICAL WARNING: No Admin-Chat is set,\n"+
+              "   to verify as Admin, please send \"admin verify "+admin_token+"\" to the Bot\n"+
+              "   The first one to send this, will be the Admin\n"+
+              "   If somehow anyone but you gets admin, delete data.pkl")
     # Start the Bot
     updater.start_polling()
     # Block until you press Ctrl-C or the process receives SIGINT, SIGTERM or
