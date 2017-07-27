@@ -76,7 +76,7 @@ def set(bot, update, args, job_queue):
         data["job_data"][chat_id]=jobContext
         jobs[chat_id] = job
         update.message.reply_text('Surveillance successfully set!')
-        jobContext["message_id"]=update.message.reply_text("Surveillance set up at "+time.strftime("%A %d. %b %Y, H:%M:%S %Z")).message_id
+        jobContext["message_id"]=update.message.reply_text("Surveillance set up at "+time.strftime("%A %d. %b %Y, %H:%M:%S %Z")).message_id
         saveData()
     except (IndexError, ValueError):
         update.message.reply_text('Failure! Plese use as /set <url>')
