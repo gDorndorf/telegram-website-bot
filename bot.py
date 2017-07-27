@@ -3,12 +3,31 @@ import config_private as config
 from urllib.request import urlopen
 import hashlib
 import logging
-
+import pickle
+import os.path
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+dataFile="data.pkl"
+data = {}
+data["admin_id"] = -1
+data["job_data"] = {}
+data["update_time"] = 5 #in Seconds
+jobs = {}
+
+def save_obj(obj, name ):
+    with open(name, 'w+b') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+        
+def load_obj(name ):
+    with open(name, 'rb') as f:
+        return pickle.load(f)
+
+def saveData():
+    save_obj(data, dataFile)
+    
 def websiteHash(url):
     response = urlopen(url)
     html = response.read()
@@ -26,7 +45,7 @@ def performCheck(bot, job):
                          'an der Website '+job.context["url"])
         job.context["siteHash"]=siteHash
     
-def set(bot, update, args, job_queue, chat_data):
+def set(bot, update, args, job_queue):
 
     """Adds a job to the queue
 
@@ -36,7 +55,7 @@ def set(bot, update, args, job_queue, chat_data):
 
     chat_id = update.message.chat_id
 
-    if 'job' in chat_data:
+    if update.message.chat_id in jobs:
         update.message.reply_text('You have an active surveillance, please cancel first')
         return
     
@@ -46,30 +65,29 @@ def set(bot, update, args, job_queue, chat_data):
         jobContext["url"]=args[0]
         #jobContext["siteHash"]=0
         jobContext["siteHash"]=websiteHash(jobContext["url"])
-        job = job_queue.run_repeating(performCheck, 5*60, context=jobContext)
-
-        chat_data['job'] = job
-        print("Set surveillance for url "+jobContext["url"]+"for user ?")
+        print("Set surveillance for url "+jobContext["url"]+" for user "+update.effective_user.username)
+        job = job_queue.run_repeating(performCheck, data["update_time"], context=jobContext)
+        data["job_data"][chat_id]=jobContext
+        jobs[chat_id] = job
         update.message.reply_text('Surveillance successfully set!')
 
+        saveData()
     except (IndexError, ValueError):
-
         update.message.reply_text('Failure! Plese use as /set <url>')
 
-def unset(bot, update, chat_data):
-
+def unset(bot, update):
     """Removes the job if the user changed their mind"""
-
-    if 'job' not in chat_data:
+    if update.message.chat_id not in jobs:
         update.message.reply_text('You have no active surveillance')
         return
 
-    job = chat_data['job']
+    job = jobs[update.message.chat_id]
     job.schedule_removal()
-    del chat_data['job']
+    del jobs[update.message.chat_id]
+    del data["job_data"][update.message.chat_id]
 
     update.message.reply_text('Surveillance canceled!')
-
+    saveData()
 
 
 def error(bot, update, error):
@@ -90,18 +108,23 @@ def main():
     dp.add_handler(CommandHandler("help", start))
     dp.add_handler(CommandHandler("set", set,
                                   pass_args=True,
-                                  pass_job_queue=True,
-                                  pass_chat_data=True))
-    dp.add_handler(CommandHandler("unset", unset, pass_chat_data=True))
+                                  pass_job_queue=True))
+    dp.add_handler(CommandHandler("unset", unset))
 
-
-
+    
     # log all errors
     dp.add_error_handler(error)
 
+    if os.path.isfile(dataFile):
+        global data
+        data=load_obj(dataFile)
+        print("Load jobs for UserIds:")
+        for chat_id, jobDat in data["job_data"].items():
+            print(chat_id)
+            jobs[chat_id]=updater.job_queue.run_repeating(performCheck, data["update_time"], context=jobDat)
+        print("done")
     # Start the Bot
     updater.start_polling()
-
     # Block until you press Ctrl-C or the process receives SIGINT, SIGTERM or
     # SIGABRT. This should be used most of the time, since start_polling() is
     # non-blocking and will stop the bot gracefully.
@@ -112,6 +135,7 @@ def main():
 
 
 if __name__ == '__main__':
+    
     main()
 #start_handler = CommandHandler('start', start)
 #dispatcher.add_handler(start_handler)
