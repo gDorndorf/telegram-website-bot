@@ -7,6 +7,7 @@ import pickle
 import os.path
 import string
 import random
+import time
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -47,7 +48,7 @@ def performCheck(bot, job):
                          'an der Website '+job.context["url"])
         job.context["siteHash"]=siteHash
     else:
-        bot.edit_message_text(text="Last Checked "+time.strftime("%A %d. %b %Y, H:%M %Z"),message_id=job.context["message_id"])
+        bot.edit_message_text(text="Last Checked "+time.strftime("%A %d. %b %Y, %H:%M:%S %Z"),chat_id=job.context["chat_id"],message_id=job.context["message_id"])
     
 def set(bot, update, args, job_queue):
 
@@ -75,7 +76,7 @@ def set(bot, update, args, job_queue):
         data["job_data"][chat_id]=jobContext
         jobs[chat_id] = job
         update.message.reply_text('Surveillance successfully set!')
-        jobContext["message_id"]=update.message.reply_text("Set up at "+time.strftime("%A %d. %b %Y, H:%M %Z")).message_id
+        jobContext["message_id"]=update.message.reply_text("Surveillance set up at "+time.strftime("%A %d. %b %Y, H:%M:%S %Z")).message_id
         saveData()
     except (IndexError, ValueError):
         update.message.reply_text('Failure! Plese use as /set <url>')
