@@ -18,8 +18,7 @@ data["admin_id"] = -1
 data["job_data"] = {}
 data["update_time"] = 5 #in Seconds
 jobs = {}
-admin_token=''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-
+admin_token=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
 def save_obj(obj, name ):
     with open(name, 'w+b') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
@@ -47,6 +46,8 @@ def performCheck(bot, job):
         bot.send_message(job.context["chat_id"], text='Es gab aenderungen'+
                          'an der Website '+job.context["url"])
         job.context["siteHash"]=siteHash
+    else:
+        bot.edit_message_text(text="Last Checked "+time.strftime("%A %d. %b %Y, H:%M %Z"),message_id=job.context["message_id"])
     
 def set(bot, update, args, job_queue):
 
@@ -68,12 +69,13 @@ def set(bot, update, args, job_queue):
         jobContext["url"]=args[0]
         #jobContext["siteHash"]=0
         jobContext["siteHash"]=websiteHash(jobContext["url"])
+        jobContext["message_id"]=-1
         print("Set surveillance for url "+jobContext["url"]+" for user "+update.effective_user.username)
         job = job_queue.run_repeating(performCheck, data["update_time"], context=jobContext)
         data["job_data"][chat_id]=jobContext
         jobs[chat_id] = job
         update.message.reply_text('Surveillance successfully set!')
-
+        jobContext["message_id"]=update.message.reply_text("Set up at "+time.strftime("%A %d. %b %Y, H:%M %Z")).message_id
         saveData()
     except (IndexError, ValueError):
         update.message.reply_text('Failure! Plese use as /set <url>')
@@ -83,14 +85,14 @@ def admin(bot, update, job_queue):
     global admin_token
     chat_id=update.message.chat_id
     if data["admin_id"]==-1:
-        if update.message.text.equals("admin verify "+admin_token):
+        if update.message.text==("admin verify "+admin_token):
             data["admin_id"]=update.message.chat_id
             update.message.reply_text("Success, you are now __ADMIN__\n\nI am at your command.")
             return
     if data["admin_id"]==chat_id:
-        
+        update.message.reply_text("Hello __ADMIN__!")
     else:
-        update.message.reply_text("Nice trym but you are not ADMIN!\nThis incient will be reportet!")
+        update.message.reply_text("Nice trym but you are not __ADMIN__!\nThis incient will be reportet!")
         
 def unset(bot, update):
     """Removes the job if the user changed their mind"""
@@ -142,7 +144,7 @@ def main():
             jobs[chat_id]=updater.job_queue.run_repeating(performCheck, data["update_time"], context=jobDat)
         print("done")
 
-    if admin_id == -1:
+    if data["admin_id"] == -1:
         global admin_token
         print("CRITICAL WARNING: No Admin-Chat is set,\n"+
               "   to verify as Admin, please send \"admin verify "+admin_token+"\" to the Bot\n"+
