@@ -17,7 +17,7 @@ dataFile="data.pkl"
 data = {}
 data["admin_id"] = -1
 data["job_data"] = {}
-data["update_time"] = 5 #in Seconds
+data["update_time"] = 60*5 #in Seconds
 jobs = {}
 admin_token=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
 def save_obj(obj, name ):
