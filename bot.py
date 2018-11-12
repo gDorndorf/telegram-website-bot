@@ -1,6 +1,8 @@
 from telegram.ext import Updater, CommandHandler, RegexHandler, Job
+from bs4 import BeautifulSoup
 import config_private as config
 from urllib.request import urlopen
+import urllib
 import hashlib
 import logging
 import pickle
@@ -17,7 +19,7 @@ dataFile="data.pkl"
 data = {}
 data["admin_id"] = -1
 data["job_data"] = {}
-data["update_time"] = 60*5 #in Seconds
+data["update_time"] = 30*1 #in Seconds
 jobs = {}
 admin_token=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
 def save_obj(obj, name ):
@@ -36,6 +38,13 @@ def websiteHash(url):
     html = response.read()
     return hashlib.md5(html).hexdigest()
 
+def getPrice(url):
+    dom = urlopen(url)
+    soup = BeautifulSoup(dom, 'html.parser')
+    #print(soup.prettify())
+    price = soup.find(id="priceblock_ourprice")
+    return price.string
+
 def start(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="I'm a bot, please talk to me!")
 
@@ -43,10 +52,14 @@ def performCheck(bot, job):
 
     """Function to Check the Website and inform the user"""
     siteHash=websiteHash(job.context["url"])
-    if not (job.context["siteHash"]==siteHash):
-        bot.send_message(job.context["chat_id"], text='Es gab aenderungen'+
-                         'an der Website '+job.context["url"])
-        job.context["siteHash"]=siteHash
+    price=getPrice(job.context["url"])
+    print(price)
+
+    if not (job.context["price"]==price):
+        bot.send_message(job.context["chat_id"], text='Es gab Änderungen '+
+                         'am Preis '+job.context["url"] + '\nEr ist: ' + price + 
+                         '\nVorher lag er bei: ' + job.context["price"]  )
+        job.context["price"]=price
     else:
         bot.edit_message_text(text="Last Checked "+time.strftime("%A %d. %b %Y, %H:%M:%S %Z"),chat_id=job.context["chat_id"],message_id=job.context["message_id"])
     
@@ -69,7 +82,8 @@ def set(bot, update, args, job_queue):
         jobContext["chat_id"]=chat_id
         jobContext["url"]=args[0]
         #jobContext["siteHash"]=0
-        jobContext["siteHash"]=websiteHash(jobContext["url"])
+        jobContext["price"]=getPrice(jobContext["url"])
+        #jobContext["siteHash"]=websiteHash(jobContext["url"])
         jobContext["message_id"]=-1
         print("Set surveillance for url "+jobContext["url"]+" for user "+update.effective_user.username)
         job = job_queue.run_repeating(performCheck, data["update_time"], context=jobContext)
@@ -117,7 +131,7 @@ def error(bot, update, error):
     
 def main():
 
-    updater = Updater(config.token)
+    updater = Updater(config.config["token"])
     # Get the dispatcher to register handlers
     
     dp = updater.dispatcher
